@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import { NTFY_BASE_URL, DEFAULT_TOPIC, BUBBLE_DURATION, AGENT_TIMEOUT } from './config'
+import { getRandomAvatar } from './avatars/index'
 
 function randomColor() {
   const hue = Math.floor(Math.random() * 360)
@@ -44,20 +45,6 @@ function SettingsModal({ topic, onSave, onClose }) {
         </form>
       </div>
     </div>
-  )
-}
-
-function AgentAvatar({ color, size = 64 }) {
-  const skinTone = `hsl(30, 50%, 75%)`
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <rect x="16" y="34" width="32" height="24" rx="8" fill={color} />
-      <circle cx="32" cy="22" r="14" fill={skinTone} />
-      <circle cx="26" cy="20" r="2.5" fill="#222" />
-      <circle cx="38" cy="20" r="2.5" fill="#222" />
-      <path d="M27 28 Q32 33 37 28" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <rect x="18" y="10" width="28" height="6" rx="3" fill={color} />
-    </svg>
   )
 }
 
@@ -354,7 +341,7 @@ function App() {
               </div>
               <div className="agent-row">
                 <div className="agent-body">
-                  <AgentAvatar color={agent.color} />
+                  {(() => { const Avatar = getRandomAvatar(sessionId); return <Avatar color={agent.color} /> })()}
                   <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
                 </div>
                 {agent.subagents && Object.entries(agent.subagents).map(([subId, sub]) => (
@@ -368,7 +355,7 @@ function App() {
                       </div>
                     )}
                     <div className="subagent-body">
-                      <AgentAvatar color={agent.color} size={36} />
+                      {(() => { const Avatar = getRandomAvatar(sessionId); return <Avatar color={agent.color} size={36} /> })()}
                       <span className="subagent-label">{sub.type || 'sub'}</span>
                     </div>
                   </div>
