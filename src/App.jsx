@@ -128,17 +128,13 @@ function App() {
         const color = getAgentColor(session)
 
         setAgents((prev) => {
-          const existing = prev[session] || { bubbles: [] }
           return {
             ...prev,
             [session]: {
               color,
               lastSeen: now,
               visible: true,
-              bubbles: [
-                ...existing.bubbles,
-                { id: bubbleId, text: msg, createdAt: now, fading: false },
-              ],
+              bubble: { id: bubbleId, text: msg, createdAt: now, fading: false },
             },
           }
         })
@@ -146,14 +142,12 @@ function App() {
         const fadeTimer = setTimeout(() => {
           setAgents((prev) => {
             const agent = prev[session]
-            if (!agent) return prev
+            if (!agent || !agent.bubble || agent.bubble.id !== bubbleId) return prev
             return {
               ...prev,
               [session]: {
                 ...agent,
-                bubbles: agent.bubbles.map((b) =>
-                  b.id === bubbleId ? { ...b, fading: true } : b
-                ),
+                bubble: { ...agent.bubble, fading: true },
               },
             }
           })
@@ -162,12 +156,12 @@ function App() {
         const removeTimer = setTimeout(() => {
           setAgents((prev) => {
             const agent = prev[session]
-            if (!agent) return prev
+            if (!agent || !agent.bubble || agent.bubble.id !== bubbleId) return prev
             return {
               ...prev,
               [session]: {
                 ...agent,
-                bubbles: agent.bubbles.filter((b) => b.id !== bubbleId),
+                bubble: null,
               },
             }
           })
@@ -265,9 +259,9 @@ function App() {
               className={`agent-card ${!agent.visible ? 'agent-fade-out' : 'agent-fade-in'}`}
             >
               <div className="agent-bubbles">
-                {agent.bubbles.map((b) => (
-                  <SpeechBubble key={b.id} text={b.text} fading={b.fading} />
-                ))}
+                {agent.bubble && (
+                  <SpeechBubble key={agent.bubble.id} text={agent.bubble.text} fading={agent.bubble.fading} />
+                )}
               </div>
               <div className="agent-body">
                 <AgentAvatar color={agent.color} />
