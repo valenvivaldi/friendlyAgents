@@ -20,6 +20,20 @@ TOOL_HOOK_CMD="$HOOKS_DIR/$TOOL_HOOK_SCRIPT"
 SUBAGENT_HOOK_CMD="$HOOKS_DIR/$SUBAGENT_HOOK_SCRIPT"
 COMPACT_HOOK_CMD="$HOOKS_DIR/$COMPACT_HOOK_SCRIPT"
 
+# --- 0. Create friendlyAgents config if needed ---
+FA_CONFIG_DIR="$HOME/.friendlyAgents"
+FA_CONFIG="$FA_CONFIG_DIR/config.json"
+if [ ! -f "$FA_CONFIG" ]; then
+  mkdir -p "$FA_CONFIG_DIR"
+  cat > "$FA_CONFIG" <<'CONF'
+{
+  "ownerName": "",
+  "avatarWhitelist": []
+}
+CONF
+  echo "[ntfy chat] Created default config at $FA_CONFIG"
+fi
+
 # --- Pre-checks ---
 if ! command -v jq &>/dev/null; then
   echo "Error: jq is required. Install with: brew install jq (macOS) or apt install jq (Linux)"

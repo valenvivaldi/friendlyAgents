@@ -49,6 +49,15 @@ function SettingsModal({ topic, onSave, onClose }) {
 }
 
 function parseMessage(text) {
+  // register:ownerName:["avatar1","avatar2"]
+  if (text.startsWith('register:')) {
+    const firstColon = text.indexOf(':')
+    const secondColon = text.indexOf(':', firstColon + 1)
+    const ownerName = text.substring(firstColon + 1, secondColon) || null
+    let whitelist = []
+    try { whitelist = JSON.parse(text.substring(secondColon + 1)) } catch {}
+    return { type: 'register', ownerName, whitelist }
+  }
   // subagent:start:agentId:agentType
   // subagent:stop:agentId
   // subagent:msg:agentId:text
@@ -129,6 +138,27 @@ function App() {
 
         const now = Date.now()
         const parsed2 = parseMessage(msg)
+
+        if (parsed2.type === 'register') {
+          const color = getAgentColor(session)
+          setAgents((prev) => {
+            const existing = prev[session]
+            return {
+              ...prev,
+              [session]: {
+                ...existing,
+                color,
+                lastSeen: now,
+                visible: true,
+                subagents: existing?.subagents || {},
+                bubble: existing?.bubble || null,
+                ownerName: parsed2.ownerName || existing?.ownerName || null,
+                avatarWhitelist: parsed2.whitelist?.length ? parsed2.whitelist : (existing?.avatarWhitelist || null),
+              },
+            }
+          })
+          return
+        }
 
         if (parsed2.type === 'subagent') {
           const { action, agentId, text: subText } = parsed2
@@ -341,8 +371,11 @@ function App() {
               </div>
               <div className="agent-row">
                 <div className="agent-body">
-                  {(() => { const Avatar = getRandomAvatar(sessionId); return <Avatar color={agent.color} /> })()}
-                  <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+                  {(() => { const Avatar = getRandomAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} /> })()}
+                  <div className="agent-info">
+                    <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+                    {agent.ownerName && <span className="agent-owner">{agent.ownerName}</span>}
+                  </div>
                 </div>
                 {agent.subagents && Object.entries(agent.subagents).map(([subId, sub]) => (
                   <div
@@ -355,7 +388,7 @@ function App() {
                       </div>
                     )}
                     <div className="subagent-body">
-                      {(() => { const Avatar = getRandomAvatar(sessionId); return <Avatar color={agent.color} size={36} /> })()}
+                      {(() => { const Avatar = getRandomAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} size={36} /> })()}
                       <span className="subagent-label">{sub.type || 'sub'}</span>
                     </div>
                   </div>

@@ -196,10 +196,23 @@ h1 {
   font-size: 0.72rem;
 }
 
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
 .agent-id {
   font-size: 0.7rem;
   font-weight: 600;
   font-family: monospace;
+}
+
+.agent-owner {
+  font-size: 0.6rem;
+  color: #888;
+  font-weight: 400;
 }
 
 /* Bubbles */
