@@ -61,10 +61,22 @@ function AgentAvatar({ color, size = 64 }) {
   )
 }
 
+function formatMessage(text) {
+  if (text.startsWith('tool:')) {
+    const toolName = text.slice(5)
+    return { display: toolName, icon: '\u{1F527}', isToolMsg: true }
+  }
+  return { display: text, icon: null, isToolMsg: false }
+}
+
 function SpeechBubble({ text, fading }) {
+  const { display, icon, isToolMsg } = formatMessage(text)
   return (
-    <div className={`bubble ${fading ? 'bubble-fade' : ''}`}>
-      <div className="bubble-text">{text}</div>
+    <div className={`bubble ${fading ? 'bubble-fade' : ''} ${isToolMsg ? 'bubble-tool' : ''}`}>
+      <div className="bubble-text">
+        {icon && <span className="tool-icon">{icon}</span>}
+        {display}
+      </div>
       <div className="bubble-arrow" />
     </div>
   )

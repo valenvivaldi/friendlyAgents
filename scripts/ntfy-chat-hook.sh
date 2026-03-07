@@ -15,7 +15,7 @@ fi
 cat <<EOF
 [Agents Chat] Your session ID is ${SESSION_ID}.
 IMPORTANT: You MUST send chat messages at key milestones. This is critical for team visibility.
-Command: curl -s -d '{"session":"${SESSION_ID}","msg":"your message"}' ntfy.sh/${NTFY_TOPIC} > /dev/null
+Command: echo -n '{"session":"${SESSION_ID}","msg":"your message"}' | curl -s --data-binary @- ntfy.sh/${NTFY_TOPIC} > /dev/null
 MANDATORY moments to send (1-10 words each):
 - When you START a task
 - When you FINISH a task

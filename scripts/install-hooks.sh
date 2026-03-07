@@ -12,7 +12,9 @@ NTFY_TOPIC="${NTFY_TOPIC:-friendlyAgents}"
 SETTINGS="$HOME/.claude/settings.json"
 HOOKS_DIR="$HOME/.claude/hooks"
 HOOK_SCRIPT="ntfy-chat.sh"
+TOOL_HOOK_SCRIPT="ntfy-tool.sh"
 HOOK_CMD="$HOOKS_DIR/$HOOK_SCRIPT"
+TOOL_HOOK_CMD="$HOOKS_DIR/$TOOL_HOOK_SCRIPT"
 
 # --- Pre-checks ---
 if ! command -v jq &>/dev/null; then
@@ -24,32 +26,60 @@ fi
 mkdir -p "$HOOKS_DIR"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cp "$SCRIPT_DIR/ntfy-chat-hook.sh" "$HOOK_CMD"
-chmod +x "$HOOK_CMD"
+cp "$SCRIPT_DIR/ntfy-tool-hook.sh" "$TOOL_HOOK_CMD"
+chmod +x "$HOOK_CMD" "$TOOL_HOOK_CMD"
 
 # --- 2. Bake topic into the installed hook ---
-sed -i.bak "s|NTFY_TOPIC=\"\${NTFY_TOPIC:-friendlyAgents}\"|NTFY_TOPIC=\"\${NTFY_TOPIC:-${NTFY_TOPIC}}\"|" "$HOOK_CMD"
-rm -f "$HOOK_CMD.bak"
+for f in "$HOOK_CMD" "$TOOL_HOOK_CMD"; do
+  sed -i.bak "s|NTFY_TOPIC=\"\${NTFY_TOPIC:-friendlyAgents}\"|NTFY_TOPIC=\"\${NTFY_TOPIC:-${NTFY_TOPIC}}\"|" "$f"
+  rm -f "$f.bak"
+done
 
 # --- 3. Check if already installed ---
-if [ -f "$SETTINGS" ] && grep -q "ntfy-chat.sh" "$SETTINGS" 2>/dev/null; then
-  echo "[ntfy chat] Hook already installed, updated script only. Topic: $NTFY_TOPIC"
+SESSION_INSTALLED=false
+TOOL_INSTALLED=false
+
+if [ -f "$SETTINGS" ]; then
+  grep -q "ntfy-chat.sh" "$SETTINGS" 2>/dev/null && SESSION_INSTALLED=true
+  grep -q "ntfy-tool.sh" "$SETTINGS" 2>/dev/null && TOOL_INSTALLED=true
+fi
+
+if $SESSION_INSTALLED && $TOOL_INSTALLED; then
+  echo "[ntfy chat] All hooks already installed, updated scripts only. Topic: $NTFY_TOPIC"
   exit 0
 fi
 
-# --- 4. Merge hook into settings.json ---
-HOOK_ENTRY='{"hooks":[{"type":"command","command":"'"$HOOK_CMD"'","timeout":3}]}'
+# --- 4. Merge hooks into settings.json ---
+SESSION_ENTRY='{"hooks":[{"type":"command","command":"'"$HOOK_CMD"'","timeout":3}]}'
+TOOL_ENTRY='{"hooks":[{"type":"command","command":"'"$TOOL_HOOK_CMD"'","timeout":5}]}'
 
+# Ensure settings file exists
 if [ ! -f "$SETTINGS" ]; then
   mkdir -p "$(dirname "$SETTINGS")"
-  jq -n --argjson entry "$HOOK_ENTRY" '{hooks:{SessionStart:[$entry]}}' > "$SETTINGS"
-elif jq -e '.hooks.SessionStart' "$SETTINGS" >/dev/null 2>&1; then
-  jq --argjson entry "$HOOK_ENTRY" '.hooks.SessionStart += [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
+  echo '{}' > "$SETTINGS"
+fi
+
+# Add SessionStart hook
+if ! $SESSION_INSTALLED; then
+  if jq -e '.hooks.SessionStart' "$SETTINGS" >/dev/null 2>&1; then
+    jq --argjson entry "$SESSION_ENTRY" '.hooks.SessionStart += [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
+  elif jq -e '.hooks' "$SETTINGS" >/dev/null 2>&1; then
+    jq --argjson entry "$SESSION_ENTRY" '.hooks.SessionStart = [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
+  else
+    jq --argjson entry "$SESSION_ENTRY" '. + {hooks:{SessionStart:[$entry]}}' "$SETTINGS" > "$SETTINGS.tmp"
+  fi
   mv "$SETTINGS.tmp" "$SETTINGS"
-elif jq -e '.hooks' "$SETTINGS" >/dev/null 2>&1; then
-  jq --argjson entry "$HOOK_ENTRY" '.hooks.SessionStart = [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
-  mv "$SETTINGS.tmp" "$SETTINGS"
-else
-  jq --argjson entry "$HOOK_ENTRY" '. + {hooks:{SessionStart:[$entry]}}' "$SETTINGS" > "$SETTINGS.tmp"
+fi
+
+# Add PreToolUse hook
+if ! $TOOL_INSTALLED; then
+  if jq -e '.hooks.PreToolUse' "$SETTINGS" >/dev/null 2>&1; then
+    jq --argjson entry "$TOOL_ENTRY" '.hooks.PreToolUse += [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
+  elif jq -e '.hooks' "$SETTINGS" >/dev/null 2>&1; then
+    jq --argjson entry "$TOOL_ENTRY" '.hooks.PreToolUse = [$entry]' "$SETTINGS" > "$SETTINGS.tmp"
+  else
+    jq --argjson entry "$TOOL_ENTRY" '.hooks += {PreToolUse:[$entry]}' "$SETTINGS" > "$SETTINGS.tmp"
+  fi
   mv "$SETTINGS.tmp" "$SETTINGS"
 fi
 

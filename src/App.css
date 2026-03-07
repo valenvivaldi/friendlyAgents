@@ -201,6 +201,20 @@ h1 {
   border-top: 6px solid #2a2a2a;
 }
 
+.bubble-tool {
+  background: transparent;
+  border: 1px dashed #444;
+  padding: 0.3em 0.6em;
+}
+
+.bubble-tool .bubble-arrow {
+  border-top-color: transparent;
+}
+
+.tool-icon {
+  margin-right: 0.3em;
+}
+
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(8px) scale(0.9); }
   to { opacity: 1; transform: translateY(0) scale(1); }
