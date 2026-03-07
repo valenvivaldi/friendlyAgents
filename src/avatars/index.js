@@ -15,6 +15,10 @@ import Pilot from './pilot'
 import Kitsune from './kitsune'
 import Samurai from './samurai'
 import Saiyan from './saiyan'
+import Hisoka from './hisoka'
+import Gon from './gon'
+import Kurapika from './kurapika'
+import Killua from './killua'
 
 Human.displayName = 'human'
 Robot.displayName = 'robot'
@@ -33,12 +37,17 @@ Pilot.displayName = 'pilot'
 Kitsune.displayName = 'kitsune'
 Samurai.displayName = 'samurai'
 Saiyan.displayName = 'saiyan'
+Hisoka.displayName = 'hisoka'
+Gon.displayName = 'gon'
+Kurapika.displayName = 'kurapika'
+Killua.displayName = 'killua'
 
-export { Human, Robot, Cat, Mech, Ghost, Slime, Tanuki, Pixi, Knight, Octo, Kaiju, Ninja, Mahou, Pilot, Kitsune, Samurai, Saiyan }
+export { Human, Robot, Cat, Mech, Ghost, Slime, Tanuki, Pixi, Knight, Octo, Kaiju, Ninja, Mahou, Pilot, Kitsune, Samurai, Saiyan, Hisoka, Gon, Kurapika, Killua }
 
 export const AVATAR_LIST = [
   Human, Robot, Cat, Mech, Ghost, Slime, Tanuki, Pixi, Knight, Octo, Kaiju,
   Ninja, Mahou, Pilot, Kitsune, Samurai, Saiyan,
+  Hisoka, Gon, Kurapika, Killua,
 ]
 
 export function getRandomAvatar(seed, whitelist = null) {
