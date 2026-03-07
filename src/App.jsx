@@ -130,7 +130,9 @@ function App() {
 
         let parsed
         try {
-          parsed = JSON.parse(data.message)
+          // ntfy.sh escapes certain chars (e.g. \!) which breaks JSON.parse
+          const sanitized = data.message.replace(/\\([^"\\\/bfnrtu])/g, '$1')
+          parsed = JSON.parse(sanitized)
         } catch {
           parsed = { session: 'unknown', msg: data.message }
         }
