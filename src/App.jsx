@@ -61,6 +61,21 @@ function AgentAvatar({ color, size = 64 }) {
   )
 }
 
+function parseMessage(text) {
+  // subagent:start:agentId:agentType
+  // subagent:stop:agentId
+  // subagent:msg:agentId:text
+  // subagent:tool:agentId:text
+  if (text.startsWith('subagent:')) {
+    const parts = text.split(':')
+    const action = parts[1]
+    const agentId = parts[2]
+    const rest = parts.slice(3).join(':')
+    return { type: 'subagent', action, agentId, text: rest }
+  }
+  return { type: 'message', text }
+}
+
 function formatMessage(text) {
   if (text.startsWith('tool:')) {
     const toolName = text.slice(5)
@@ -124,16 +139,88 @@ function App() {
         if (!session || !msg) return
 
         const now = Date.now()
+        const parsed2 = parseMessage(msg)
+
+        if (parsed2.type === 'subagent') {
+          const { action, agentId, text: subText } = parsed2
+          setAgents((prev) => {
+            const agent = prev[session]
+            if (!agent) return prev
+            const subagents = { ...(agent.subagents || {}) }
+
+            if (action === 'start') {
+              subagents[agentId] = {
+                type: subText,
+                bubble: null,
+                visible: true,
+              }
+            } else if (action === 'stop') {
+              if (subagents[agentId]) {
+                subagents[agentId] = { ...subagents[agentId], visible: false }
+                const removeTimer = setTimeout(() => {
+                  setAgents((p) => {
+                    const a = p[session]
+                    if (!a) return p
+                    const s = { ...(a.subagents || {}) }
+                    delete s[agentId]
+                    return { ...p, [session]: { ...a, subagents: s } }
+                  })
+                }, 1000)
+                timersRef.current.push(removeTimer)
+              }
+            } else if (action === 'msg' || action === 'tool') {
+              const bubbleText = action === 'tool' ? subText : subText
+              if (subagents[agentId]) {
+                const bubbleId = `${now}-${Math.random()}`
+                subagents[agentId] = {
+                  ...subagents[agentId],
+                  bubble: { id: bubbleId, text: bubbleText, fading: false },
+                }
+                const fadeTimer = setTimeout(() => {
+                  setAgents((p) => {
+                    const a = p[session]
+                    if (!a?.subagents?.[agentId]?.bubble) return p
+                    if (a.subagents[agentId].bubble.id !== bubbleId) return p
+                    const s = { ...a.subagents }
+                    s[agentId] = { ...s[agentId], bubble: { ...s[agentId].bubble, fading: true } }
+                    return { ...p, [session]: { ...a, subagents: s } }
+                  })
+                }, BUBBLE_DURATION - 1000)
+                const removeTimer = setTimeout(() => {
+                  setAgents((p) => {
+                    const a = p[session]
+                    if (!a?.subagents?.[agentId]?.bubble) return p
+                    if (a.subagents[agentId].bubble.id !== bubbleId) return p
+                    const s = { ...a.subagents }
+                    s[agentId] = { ...s[agentId], bubble: null }
+                    return { ...p, [session]: { ...a, subagents: s } }
+                  })
+                }, BUBBLE_DURATION)
+                timersRef.current.push(fadeTimer, removeTimer)
+              }
+            }
+
+            return {
+              ...prev,
+              [session]: { ...agent, lastSeen: now, subagents },
+            }
+          })
+          return
+        }
+
+        // Regular message
         const bubbleId = `${now}-${Math.random()}`
         const color = getAgentColor(session)
 
         setAgents((prev) => {
+          const existing = prev[session]
           return {
             ...prev,
             [session]: {
               color,
               lastSeen: now,
               visible: true,
+              subagents: existing?.subagents || {},
               bubble: { id: bubbleId, text: msg, createdAt: now, fading: false },
             },
           }
@@ -263,9 +350,27 @@ function App() {
                   <SpeechBubble key={agent.bubble.id} text={agent.bubble.text} fading={agent.bubble.fading} />
                 )}
               </div>
-              <div className="agent-body">
-                <AgentAvatar color={agent.color} />
-                <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+              <div className="agent-row">
+                <div className="agent-body">
+                  <AgentAvatar color={agent.color} />
+                  <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+                </div>
+                {agent.subagents && Object.entries(agent.subagents).map(([subId, sub]) => (
+                  <div
+                    key={subId}
+                    className={`subagent-card ${sub.visible ? 'agent-fade-in' : 'agent-fade-out'}`}
+                  >
+                    {sub.bubble && (
+                      <div className="subagent-bubble-wrap">
+                        <SpeechBubble key={sub.bubble.id} text={sub.bubble.text} fading={sub.bubble.fading} />
+                      </div>
+                    )}
+                    <div className="subagent-body">
+                      <AgentAvatar color={agent.color} size={36} />
+                      <span className="subagent-label">{sub.type || 'sub'}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

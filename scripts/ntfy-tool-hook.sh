@@ -9,6 +9,7 @@ INPUT=$(cat)
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)
 TOOL_INPUT=$(echo "$INPUT" | jq -c '.tool_input // {}' 2>/dev/null)
+AGENT_ID=$(echo "$INPUT" | jq -r '.agent_id // empty' 2>/dev/null)
 
 if [ -z "$SESSION_ID" ] || [ -z "$TOOL_NAME" ]; then
   exit 0
@@ -71,6 +72,11 @@ esac
 # Default: generic wrench message for any unmatched tool
 if [ -z "$MSG" ]; then
   MSG="tool:$TOOL_NAME"
+fi
+
+# Prefix with subagent info if running inside a subagent
+if [ -n "$AGENT_ID" ]; then
+  MSG="subagent:tool:${AGENT_ID}:${MSG}"
 fi
 
 # Send async (fire-and-forget) so we don't slow down Claude

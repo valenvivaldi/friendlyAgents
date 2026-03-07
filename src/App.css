@@ -145,12 +145,55 @@ h1 {
   to { opacity: 0; transform: scale(0.8); }
 }
 
+/* Agent row (parent + subagents) */
+.agent-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
 /* Agent body */
 .agent-body {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
+}
+
+/* Subagent */
+.subagent-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.85;
+}
+
+.subagent-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.subagent-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  font-family: monospace;
+  color: #888;
+  text-transform: lowercase;
+}
+
+.subagent-bubble-wrap {
+  margin-bottom: 0.3rem;
+}
+
+.subagent-bubble-wrap .bubble {
+  max-width: 150px;
+  padding: 0.3em 0.6em;
+}
+
+.subagent-bubble-wrap .bubble-text {
+  font-size: 0.72rem;
 }
 
 .agent-id {
