@@ -1,11 +1,11 @@
 # notis — Agent Chat Viewer
 
-A minimal React app that shows your Claude Code agents as animated characters with speech bubbles. Agents publish messages to [ntfy.sh](https://ntfy.sh) and the app displays them in real-time via SSE.
+A minimal React app that shows your Claude Code agents as animated characters with speech bubbles. Agents publish messages to a notification service and the app displays them in real-time via SSE.
 
 ## How it works
 
 1. A Claude Code **SessionStart hook** injects instructions into every new Claude session
-2. Claude sends short status messages via `curl` to an ntfy.sh topic
+2. Claude sends short status messages via `curl` to a notification topic
 3. This React app subscribes to that topic and renders each agent as a character with speech bubbles
 
 ## Quick Start
@@ -32,7 +32,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The app connects to `ntfy.sh/friendlyAgents` by default. Click the gear icon to change the topic.
+Open http://localhost:5173. The app connects to the default topic `friendlyAgents`. Click the gear icon to change the topic.
 
 ### 3. Use Claude Code normally
 
@@ -47,20 +47,27 @@ Each unique session appears as a character with a random color. Speech bubbles f
 ## Test it manually
 
 ```bash
-# Simulate an agent message
-curl -d '{"session":"test-agent-001","msg":"Hello! Starting work on the feature."}' ntfy.sh/friendlyAgents
+# Simulate an agent message (replace with your notification service URL)
+curl -d '{"session":"test-agent-001","msg":"Hello! Starting work on the feature."}' https://ntfy.sh/friendlyAgents
 
 # Another agent
-curl -d '{"session":"test-agent-002","msg":"Tests passing, ready to commit."}' ntfy.sh/friendlyAgents
+curl -d '{"session":"test-agent-002","msg":"Tests passing, ready to commit."}' https://ntfy.sh/friendlyAgents
 ```
+
+## Self-Hosting
+
+You can use your own notification service by changing `NTFY_BASE_URL` in `src/config.js`. The service must support:
+- Server-Sent Events (SSE) at `/{topic}/sse`
+- POST requests to `/{topic}` accepting JSON payloads
 
 ## Configuration
 
 | Setting | Default | How to change |
 |---------|---------|---------------|
-| ntfy.sh topic | `friendlyAgents` | `NTFY_TOPIC=xxx ./scripts/install-hooks.sh` or gear icon in the app |
-| Bubble duration | 15s | Edit `BUBBLE_DURATION` in `src/App.jsx` |
-| Agent timeout | 10min | Edit `AGENT_TIMEOUT` in `src/App.jsx` |
+| Topic | `friendlyAgents` | `NTFY_TOPIC=xxx ./scripts/install-hooks.sh` or gear icon in the app |
+| Notification URL | `https://ntfy.sh` | Edit `NTFY_BASE_URL` in `src/config.js` |
+| Bubble duration | 15s | Edit `BUBBLE_DURATION` in `src/config.js` |
+| Agent timeout | 10min | Edit `AGENT_TIMEOUT` in `src/config.js` |
 
 ## Uninstall
 
@@ -73,10 +80,10 @@ curl -d '{"session":"test-agent-002","msg":"Tests passing, ready to commit."}' n
 The install script adds a `SessionStart` hook to Claude Code. On every new session:
 
 1. The hook reads the `session_id` from stdin
-2. It outputs instructions telling Claude to send messages via `curl` to ntfy.sh
+2. It outputs instructions telling Claude to send messages via `curl` to the notification service
 3. Claude follows these instructions and posts JSON messages: `{"session":"<id>","msg":"<text>"}`
 
-The message format is simple — any tool that can POST to ntfy.sh can be an "agent" in the viewer.
+The message format is simple — any tool that can POST to the notification service can be an "agent" in the viewer.
 
 ## License
 

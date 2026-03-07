@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
-
-const BUBBLE_DURATION = 15_000
-const AGENT_TIMEOUT = 10 * 60_000
-const DEFAULT_TOPIC = 'friendlyAgents'
+import { NTFY_BASE_URL, DEFAULT_TOPIC, BUBBLE_DURATION, AGENT_TIMEOUT } from './config'
 
 function randomColor() {
   const hue = Math.floor(Math.random() * 360)
@@ -32,7 +29,7 @@ function SettingsModal({ topic, onSave, onClose }) {
         <h2>Settings</h2>
         <form onSubmit={handleSubmit}>
           <label>
-            ntfy.sh topic
+            Topic
             <input
               type="text"
               value={value}
@@ -97,7 +94,7 @@ function App() {
     if (eventSourceRef.current) eventSourceRef.current.close()
     clearAllTimers()
 
-    const es = new EventSource(`https://ntfy.sh/${topicName}/sse`)
+    const es = new EventSource(`${NTFY_BASE_URL}/${topicName}/sse`)
 
     es.onmessage = (e) => {
       try {
@@ -233,7 +230,7 @@ function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>ntfy.sh/<span className="topic-name">{topic}</span></h1>
+        <h1>Topic: <span className="topic-name">{topic}</span></h1>
         <span className="agent-count">{agentEntries.length} agent{agentEntries.length !== 1 && 's'}</span>
         <GearIcon onClick={() => setShowSettings(true)} />
       </header>
