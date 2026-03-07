@@ -1,0 +1,275 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import './App.css'
+
+const BUBBLE_DURATION = 15_000
+const AGENT_TIMEOUT = 10 * 60_000
+const DEFAULT_TOPIC = 'friendlyAgents'
+
+function randomColor() {
+  const hue = Math.floor(Math.random() * 360)
+  return `hsl(${hue}, 70%, 55%)`
+}
+
+function GearIcon({ onClick }) {
+  return (
+    <button className="gear-btn" onClick={onClick} title="Settings">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M8.5 1h3l.4 2.4a6.5 6.5 0 0 1 1.6.9l2.3-.8 1.5 2.6-1.9 1.6a6.5 6.5 0 0 1 0 1.8l1.9 1.6-1.5 2.6-2.3-.8a6.5 6.5 0 0 1-1.6.9L11.5 19h-3l-.4-2.4a6.5 6.5 0 0 1-1.6-.9l-2.3.8-1.5-2.6 1.9-1.6a6.5 6.5 0 0 1 0-1.8L2.7 8.9l1.5-2.6 2.3.8a6.5 6.5 0 0 1 1.6-.9L8.5 1zM10 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
+      </svg>
+    </button>
+  )
+}
+
+function SettingsModal({ topic, onSave, onClose }) {
+  const [value, setValue] = useState(topic)
+  function handleSubmit(e) {
+    e.preventDefault()
+    if (value.trim()) onSave(value.trim())
+  }
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Settings</h2>
+        <form onSubmit={handleSubmit}>
+          <label>
+            ntfy.sh topic
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function AgentAvatar({ color, size = 64 }) {
+  const skinTone = `hsl(30, 50%, 75%)`
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <rect x="16" y="34" width="32" height="24" rx="8" fill={color} />
+      <circle cx="32" cy="22" r="14" fill={skinTone} />
+      <circle cx="26" cy="20" r="2.5" fill="#222" />
+      <circle cx="38" cy="20" r="2.5" fill="#222" />
+      <path d="M27 28 Q32 33 37 28" stroke="#222" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <rect x="18" y="10" width="28" height="6" rx="3" fill={color} />
+    </svg>
+  )
+}
+
+function SpeechBubble({ text, fading }) {
+  return (
+    <div className={`bubble ${fading ? 'bubble-fade' : ''}`}>
+      <div className="bubble-text">{text}</div>
+      <div className="bubble-arrow" />
+    </div>
+  )
+}
+
+function App() {
+  const [topic, setTopic] = useState(() => localStorage.getItem('ntfy-topic') || DEFAULT_TOPIC)
+  const [agents, setAgents] = useState({})
+  const [showSettings, setShowSettings] = useState(false)
+  const eventSourceRef = useRef(null)
+  const agentColorsRef = useRef({})
+  const timersRef = useRef([])
+
+  const getAgentColor = useCallback((sessionId) => {
+    if (!agentColorsRef.current[sessionId]) {
+      agentColorsRef.current[sessionId] = randomColor()
+    }
+    return agentColorsRef.current[sessionId]
+  }, [])
+
+  const clearAllTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout)
+    timersRef.current = []
+  }, [])
+
+  const subscribe = useCallback((topicName) => {
+    if (eventSourceRef.current) eventSourceRef.current.close()
+    clearAllTimers()
+
+    const es = new EventSource(`https://ntfy.sh/${topicName}/sse`)
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        if (data.event !== 'message') return
+
+        let parsed
+        try {
+          parsed = JSON.parse(data.message)
+        } catch {
+          parsed = { session: 'unknown', msg: data.message }
+        }
+
+        const { session, msg } = parsed
+        if (!session || !msg) return
+
+        const now = Date.now()
+        const bubbleId = `${now}-${Math.random()}`
+        const color = getAgentColor(session)
+
+        setAgents((prev) => {
+          const existing = prev[session] || { bubbles: [] }
+          return {
+            ...prev,
+            [session]: {
+              color,
+              lastSeen: now,
+              visible: true,
+              bubbles: [
+                ...existing.bubbles,
+                { id: bubbleId, text: msg, createdAt: now, fading: false },
+              ],
+            },
+          }
+        })
+
+        const fadeTimer = setTimeout(() => {
+          setAgents((prev) => {
+            const agent = prev[session]
+            if (!agent) return prev
+            return {
+              ...prev,
+              [session]: {
+                ...agent,
+                bubbles: agent.bubbles.map((b) =>
+                  b.id === bubbleId ? { ...b, fading: true } : b
+                ),
+              },
+            }
+          })
+        }, BUBBLE_DURATION - 1000)
+
+        const removeTimer = setTimeout(() => {
+          setAgents((prev) => {
+            const agent = prev[session]
+            if (!agent) return prev
+            return {
+              ...prev,
+              [session]: {
+                ...agent,
+                bubbles: agent.bubbles.filter((b) => b.id !== bubbleId),
+              },
+            }
+          })
+        }, BUBBLE_DURATION)
+
+        timersRef.current.push(fadeTimer, removeTimer)
+      } catch {
+        // ignore
+      }
+    }
+
+    eventSourceRef.current = es
+  }, [getAgentColor, clearAllTimers])
+
+  useEffect(() => {
+    subscribe(topic)
+    return () => {
+      if (eventSourceRef.current) eventSourceRef.current.close()
+      clearAllTimers()
+    }
+  }, [topic, subscribe, clearAllTimers])
+
+  // Check for inactive agents every 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+      setAgents((prev) => {
+        let changed = false
+        const next = {}
+        for (const [id, agent] of Object.entries(prev)) {
+          if (now - agent.lastSeen > AGENT_TIMEOUT && agent.visible) {
+            next[id] = { ...agent, visible: false }
+            changed = true
+          } else {
+            next[id] = agent
+          }
+        }
+        if (!changed) return prev
+
+        const cleanupTimer = setTimeout(() => {
+          setAgents((p) => {
+            const cleaned = {}
+            for (const [id, agent] of Object.entries(p)) {
+              if (agent.visible) {
+                cleaned[id] = agent
+              } else {
+                delete agentColorsRef.current[id]
+              }
+            }
+            return cleaned
+          })
+        }, 1000)
+        timersRef.current.push(cleanupTimer)
+
+        return next
+      })
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  function handleSaveTopic(newTopic) {
+    localStorage.setItem('ntfy-topic', newTopic)
+    setTopic(newTopic)
+    setAgents({})
+    agentColorsRef.current = {}
+    setShowSettings(false)
+  }
+
+  const shortId = (id) => id.slice(0, 6)
+  const agentEntries = Object.entries(agents)
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>ntfy.sh/<span className="topic-name">{topic}</span></h1>
+        <span className="agent-count">{agentEntries.length} agent{agentEntries.length !== 1 && 's'}</span>
+        <GearIcon onClick={() => setShowSettings(true)} />
+      </header>
+
+      {showSettings && (
+        <SettingsModal
+          topic={topic}
+          onSave={handleSaveTopic}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {agentEntries.length === 0 ? (
+        <p className="waiting">Waiting for agents...</p>
+      ) : (
+        <div className="agents-grid">
+          {agentEntries.map(([sessionId, agent]) => (
+            <div
+              key={sessionId}
+              className={`agent-card ${!agent.visible ? 'agent-fade-out' : 'agent-fade-in'}`}
+            >
+              <div className="agent-bubbles">
+                {agent.bubbles.map((b) => (
+                  <SpeechBubble key={b.id} text={b.text} fading={b.fading} />
+                ))}
+              </div>
+              <div className="agent-body">
+                <AgentAvatar color={agent.color} />
+                <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default App
