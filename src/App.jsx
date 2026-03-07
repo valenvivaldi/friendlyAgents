@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import { NTFY_BASE_URL, DEFAULT_TOPIC, BUBBLE_DURATION, AGENT_TIMEOUT } from './config'
-import { getRandomAvatar } from './avatars/index'
+import { getRandomAvatar, AVATAR_LIST } from './avatars/index'
 
 function randomColor() {
   const hue = Math.floor(Math.random() * 360)
@@ -93,12 +93,53 @@ function SpeechBubble({ text, fading }) {
   )
 }
 
+function AgentCard({ sessionId, agent, shortId, cycleAvatar, getAvatar }) {
+  return (
+    <div
+      className={`agent-card ${!agent.visible ? 'agent-fade-out' : 'agent-fade-in'}`}
+    >
+      <div className="agent-bubbles">
+        {agent.bubble && (
+          <SpeechBubble key={agent.bubble.id} text={agent.bubble.text} fading={agent.bubble.fading} />
+        )}
+      </div>
+      <div className="agent-row">
+        <div className="agent-body" onDoubleClick={() => cycleAvatar(sessionId)} style={{ cursor: 'pointer' }}>
+          {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} /> })()}
+          <div className="agent-info">
+            <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
+            {agent.ownerName && <span className="agent-owner">{agent.ownerName}</span>}
+          </div>
+        </div>
+        {agent.subagents && Object.entries(agent.subagents).map(([subId, sub]) => (
+          <div
+            key={subId}
+            className={`subagent-card ${sub.visible ? 'agent-fade-in' : 'agent-fade-out'}`}
+          >
+            {sub.bubble && (
+              <div className="subagent-bubble-wrap">
+                <SpeechBubble key={sub.bubble.id} text={sub.bubble.text} fading={sub.bubble.fading} />
+              </div>
+            )}
+            <div className="subagent-body">
+              {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} size={36} /> })()}
+              <span className="subagent-label">{sub.type || 'sub'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [topic, setTopic] = useState(() => localStorage.getItem('ntfy-topic') || DEFAULT_TOPIC)
   const [agents, setAgents] = useState({})
   const [showSettings, setShowSettings] = useState(false)
+  const [groupByOwner, setGroupByOwner] = useState(() => localStorage.getItem('group-by-owner') === 'true')
   const eventSourceRef = useRef(null)
   const agentColorsRef = useRef({})
+  const avatarOverrides = useRef({})
   const timersRef = useRef([])
 
   const getAgentColor = useCallback((sessionId) => {
@@ -106,6 +147,25 @@ function App() {
       agentColorsRef.current[sessionId] = randomColor()
     }
     return agentColorsRef.current[sessionId]
+  }, [])
+
+  const getAvatar = useCallback((sessionId, whitelist) => {
+    if (avatarOverrides.current[sessionId] != null) {
+      return AVATAR_LIST[avatarOverrides.current[sessionId]]
+    }
+    return getRandomAvatar(sessionId, whitelist)
+  }, [])
+
+  const cycleAvatar = useCallback((sessionId) => {
+    const current = avatarOverrides.current[sessionId]
+    if (current != null) {
+      avatarOverrides.current[sessionId] = (current + 1) % AVATAR_LIST.length
+    } else {
+      const currentAvatar = getRandomAvatar(sessionId)
+      const idx = AVATAR_LIST.indexOf(currentAvatar)
+      avatarOverrides.current[sessionId] = (idx + 1) % AVATAR_LIST.length
+    }
+    setAgents((prev) => ({ ...prev }))
   }, [])
 
   const clearAllTimers = useCallback(() => {
@@ -336,14 +396,42 @@ function App() {
     setShowSettings(false)
   }
 
+  function toggleGroupByOwner() {
+    setGroupByOwner((prev) => {
+      const next = !prev
+      localStorage.setItem('group-by-owner', String(next))
+      return next
+    })
+  }
+
   const shortId = (id) => id.slice(0, 6)
   const agentEntries = Object.entries(agents)
+
+  const groupedEntries = groupByOwner
+    ? Object.entries(
+        agentEntries.reduce((groups, [sessionId, agent]) => {
+          const owner = agent.ownerName || 'Unknown'
+          if (!groups[owner]) groups[owner] = []
+          groups[owner].push([sessionId, agent])
+          return groups
+        }, {})
+      )
+    : null
 
   return (
     <div className="container">
       <header className="header">
         <h1>Topic: <span className="topic-name">{topic}</span></h1>
         <span className="agent-count">{agentEntries.length} agent{agentEntries.length !== 1 && 's'}</span>
+        <button
+          className={`group-btn ${groupByOwner ? 'group-btn-active' : ''}`}
+          onClick={toggleGroupByOwner}
+          title="Group by owner"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7 4a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm-4 8a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm12 0a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm-8 6a5 5 0 0 1 6 0H7zm-4 0a5 5 0 0 1 4-2h0a5 5 0 0 1-4 2zm12 0a5 5 0 0 1-4 2h0a5 5 0 0 1 4-2z"/>
+          </svg>
+        </button>
         <GearIcon onClick={() => setShowSettings(true)} />
       </header>
 
@@ -357,44 +445,23 @@ function App() {
 
       {agentEntries.length === 0 ? (
         <p className="waiting">Waiting for agents...</p>
-      ) : (
-        <div className="agents-grid">
-          {agentEntries.map(([sessionId, agent]) => (
-            <div
-              key={sessionId}
-              className={`agent-card ${!agent.visible ? 'agent-fade-out' : 'agent-fade-in'}`}
-            >
-              <div className="agent-bubbles">
-                {agent.bubble && (
-                  <SpeechBubble key={agent.bubble.id} text={agent.bubble.text} fading={agent.bubble.fading} />
-                )}
-              </div>
-              <div className="agent-row">
-                <div className="agent-body">
-                  {(() => { const Avatar = getRandomAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} /> })()}
-                  <div className="agent-info">
-                    <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
-                    {agent.ownerName && <span className="agent-owner">{agent.ownerName}</span>}
-                  </div>
-                </div>
-                {agent.subagents && Object.entries(agent.subagents).map(([subId, sub]) => (
-                  <div
-                    key={subId}
-                    className={`subagent-card ${sub.visible ? 'agent-fade-in' : 'agent-fade-out'}`}
-                  >
-                    {sub.bubble && (
-                      <div className="subagent-bubble-wrap">
-                        <SpeechBubble key={sub.bubble.id} text={sub.bubble.text} fading={sub.bubble.fading} />
-                      </div>
-                    )}
-                    <div className="subagent-body">
-                      {(() => { const Avatar = getRandomAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} size={36} /> })()}
-                      <span className="subagent-label">{sub.type || 'sub'}</span>
-                    </div>
-                  </div>
+      ) : groupByOwner && groupedEntries ? (
+        <div className="owner-groups">
+          {groupedEntries.map(([owner, entries]) => (
+            <div key={owner} className="owner-group">
+              <div className="owner-group-label">{owner}</div>
+              <div className="agents-grid">
+                {entries.map(([sessionId, agent]) => (
+                  <AgentCard key={sessionId} sessionId={sessionId} agent={agent} shortId={shortId} cycleAvatar={cycleAvatar} getAvatar={getAvatar} />
                 ))}
               </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="agents-grid">
+          {agentEntries.map(([sessionId, agent]) => (
+            <AgentCard key={sessionId} sessionId={sessionId} agent={agent} shortId={shortId} cycleAvatar={cycleAvatar} getAvatar={getAvatar} />
           ))}
         </div>
       )}
