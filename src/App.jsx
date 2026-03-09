@@ -177,7 +177,7 @@ function App() {
     if (eventSourceRef.current) eventSourceRef.current.close()
     clearAllTimers()
 
-    const es = new EventSource(`${NTFY_BASE_URL}/${topicName}/sse`)
+    const es = new EventSource(`${NTFY_BASE_URL}/${topicName}/sse?since=10m`)
 
     es.onmessage = (e) => {
       try {

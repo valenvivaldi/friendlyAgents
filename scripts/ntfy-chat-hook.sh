@@ -25,7 +25,7 @@ fi
 
 # Send registration message (fire-and-forget) so agent appears in UI immediately
 echo -n "{\"session\":\"$SESSION_ID\",\"msg\":\"register:${OWNER_NAME}:${AVATAR_WHITELIST}\"}" \
-  | curl -s --data-binary @- "ntfy.sh/$NTFY_TOPIC" > /dev/null 2>&1 &
+  | curl -s --max-time 5 --data-binary @- "ntfy.sh/$NTFY_TOPIC" > /dev/null 2>&1
 
 cat <<EOF
 [Agents Chat] Your session ID is ${SESSION_ID}.
