@@ -105,7 +105,7 @@ function AgentCard({ sessionId, agent, shortId, cycleAvatar, getAvatar }) {
       </div>
       <div className="agent-row">
         <div className="agent-body" onDoubleClick={() => cycleAvatar(sessionId)} style={{ cursor: 'pointer' }}>
-          {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} /> })()}
+          {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <div className={`avatar-idle idle-${Avatar.displayName || 'default'}`}><Avatar color={agent.color} /></div> })()}
           <div className="agent-info">
             <span className="agent-id" style={{ color: agent.color }}>{shortId(sessionId)}</span>
             {agent.ownerName && <span className="agent-owner">{agent.ownerName}</span>}
@@ -122,7 +122,7 @@ function AgentCard({ sessionId, agent, shortId, cycleAvatar, getAvatar }) {
               </div>
             )}
             <div className="subagent-body">
-              {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <Avatar color={agent.color} size={36} /> })()}
+              {(() => { const Avatar = getAvatar(sessionId, agent.avatarWhitelist); return <div className={`avatar-idle idle-${Avatar.displayName || 'default'}`}><Avatar color={agent.color} size={36} /></div> })()}
               <span className="subagent-label">{sub.type || 'sub'}</span>
             </div>
           </div>

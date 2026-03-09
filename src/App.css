@@ -322,6 +322,199 @@ h1 {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ---- Idle animations per avatar ---- */
+.avatar-idle {
+  display: inline-flex;
+}
+
+/* Human - gentle breathing */
+.idle-human { animation: idle-breathe 3s ease-in-out infinite; }
+
+/* Robot - mechanical head tilt */
+.idle-robot { animation: idle-tilt 4s ease-in-out infinite; }
+
+/* Cat - tail-swish wobble */
+.idle-cat { animation: idle-wobble 2.5s ease-in-out infinite; }
+
+/* Mech - heavy stomp vibration */
+.idle-mech { animation: idle-rumble 3s ease-in-out infinite; }
+
+/* Ghost - floating up and down */
+.idle-ghost { animation: idle-float 3s ease-in-out infinite; }
+
+/* Slime - squishy bounce */
+.idle-slime { animation: idle-squish 2s ease-in-out infinite; }
+
+/* Tanuki - playful wiggle */
+.idle-tanuki { animation: idle-wiggle 2.8s ease-in-out infinite; }
+
+/* Pixi - sparkle pulse */
+.idle-pixi { animation: idle-pulse 2s ease-in-out infinite; }
+
+/* Knight - standing guard sway */
+.idle-knight { animation: idle-sway 4s ease-in-out infinite; }
+
+/* Octo - tentacle wave */
+.idle-octo { animation: idle-wave 3s ease-in-out infinite; }
+
+/* Kaiju - menacing stomp */
+.idle-kaiju { animation: idle-stomp 3.5s ease-in-out infinite; }
+
+/* Ninja - stealth bob */
+.idle-ninja { animation: idle-bob 2.5s ease-in-out infinite; }
+
+/* Mahou - magical spin shimmer */
+.idle-mahou { animation: idle-shimmer 3s ease-in-out infinite; }
+
+/* Pilot - cockpit rock */
+.idle-pilot { animation: idle-rock 4s ease-in-out infinite; }
+
+/* Kitsune - foxy sway */
+.idle-kitsune { animation: idle-foxsway 3s ease-in-out infinite; }
+
+/* Samurai - zen breathe */
+.idle-samurai { animation: idle-zen 5s ease-in-out infinite; }
+
+/* Saiyan - power aura pulse */
+.idle-saiyan { animation: idle-power 2s ease-in-out infinite; }
+
+/* Hisoka - creepy sway */
+.idle-hisoka { animation: idle-creep 3.5s ease-in-out infinite; }
+
+/* Gon - eager bounce */
+.idle-gon { animation: idle-bounce 1.8s ease-in-out infinite; }
+
+/* Kurapika - chain swing */
+.idle-kurapika { animation: idle-pendulum 3s ease-in-out infinite; }
+
+/* Killua - electric jitter */
+.idle-killua { animation: idle-zap 2s ease-in-out infinite; }
+
+/* Default fallback */
+.idle-default { animation: idle-breathe 3s ease-in-out infinite; }
+
+/* --- Keyframes --- */
+
+@keyframes idle-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.03); }
+}
+
+@keyframes idle-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(2deg); }
+  75% { transform: rotate(-2deg); }
+}
+
+@keyframes idle-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(3deg); }
+  70% { transform: rotate(-3deg); }
+}
+
+@keyframes idle-rumble {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-0.5px, 0); }
+  40% { transform: translate(0.5px, 0); }
+  60% { transform: translate(-0.5px, 0); }
+  80% { transform: translate(0.5px, 0); }
+}
+
+@keyframes idle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes idle-squish {
+  0%, 100% { transform: scaleX(1) scaleY(1); }
+  30% { transform: scaleX(1.06) scaleY(0.94); }
+  60% { transform: scaleX(0.96) scaleY(1.04); }
+}
+
+@keyframes idle-wiggle {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  25% { transform: rotate(2deg) translateX(1px); }
+  75% { transform: rotate(-2deg) translateX(-1px); }
+}
+
+@keyframes idle-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.04); filter: brightness(1.15); }
+}
+
+@keyframes idle-sway {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
+@keyframes idle-wave {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(2deg) translateY(-1px); }
+  75% { transform: rotate(-2deg) translateY(1px); }
+}
+
+@keyframes idle-stomp {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  15% { transform: translateY(-3px) scaleY(1.02); }
+  30% { transform: translateY(0) scaleY(0.97); }
+}
+
+@keyframes idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes idle-shimmer {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+  50% { transform: scale(1.03) rotate(1deg); filter: brightness(1.1); }
+}
+
+@keyframes idle-rock {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1.5deg); }
+}
+
+@keyframes idle-foxsway {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  33% { transform: translateX(2px) rotate(1deg); }
+  66% { transform: translateX(-2px) rotate(-1deg); }
+}
+
+@keyframes idle-zen {
+  0%, 100% { transform: scaleY(1) translateY(0); }
+  50% { transform: scaleY(1.02) translateY(-1px); }
+}
+
+@keyframes idle-power {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.2); }
+}
+
+@keyframes idle-creep {
+  0%, 100% { transform: translateX(0) skewX(0deg); }
+  50% { transform: translateX(2px) skewX(1deg); }
+}
+
+@keyframes idle-bounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+  60% { transform: translateY(-2px); }
+}
+
+@keyframes idle-pendulum {
+  0%, 100% { transform: rotate(0deg); transform-origin: top center; }
+  50% { transform: rotate(3deg); transform-origin: top center; }
+}
+
+@keyframes idle-zap {
+  0%, 100% { transform: translate(0, 0); filter: brightness(1); }
+  10% { transform: translate(1px, -1px); filter: brightness(1.2); }
+  20% { transform: translate(-1px, 0); filter: brightness(1); }
+  50% { transform: translate(0, 0); filter: brightness(1); }
+  60% { transform: translate(0.5px, -0.5px); filter: brightness(1.15); }
+  70% { transform: translate(-0.5px, 0); filter: brightness(1); }
+}
+
 @media (prefers-color-scheme: light) {
   .bubble {
     background: #f0f0f0;
